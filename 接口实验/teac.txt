@@ -1,0 +1,861 @@
+8253可编程定时/计数器
+1.设定通道0工作在计数方式0,CLK0接正/负按键脉冲计数初值送n=10,OUT0的输出接LED指示灯,记录正脉冲输入时的实验结果和负脉冲输入时的实验结果。
+附加思考: 若改为通道1实现,则该进行些何修改。
+代码：
+data segment
+i82530 equ 280h
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax 
+mov dx,283H
+mov al,00010000B
+out dx,al
+mov dx,280H
+mov al,10
+out dx,al
+code ends
+end start
+
+2.设定通道0工作在方式2,CLK0接正/负按键脉冲计数初值送n=10,OUT0的输出接LED指示灯,记录正脉冲输入时的实验结果和负脉冲输入时的实验结果。
+附加思考:分析工作方式0和方式2的区别。
+代码：
+data segment
+i82530 equ 280h
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax 
+mov dx,283H
+mov al,00010100B
+out dx,al
+mov dx,280H
+mov al,10
+out dx,al
+code ends
+end start
+3.设定通道0工作在方式3,CLK0接1MHz方波脉冲，设定计数初值送N0,OUT0的输出1KHz方波脉冲,该脉冲接CLK1作为输入脉冲，设定通道1工作在方式3，设定计数初值送N1，OUT1 输出1秒的方波，OUT1接LED指示灯。观察实验结果。若CLK0接2MHz方波脉冲,则N0和N1 又将如何设定。
+附加思考:要让定时时间最长,则初值N应送多少呢?
+代码：
+data segment
+i82530 equ 280h
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+
+mov dx,283h
+mov al,00100111b
+out dx,al
+mov dx,280h
+mov al,10h
+out dx,al
+
+mov dx,283h
+mov al,01100111b
+out dx,al
+mov dx,281h
+mov al,10h
+out dx,al
+mov ah,4ch
+int 21h
+
+code ends
+end start
+
+4.通道0和通道1同实验3设定,通道2设定为工作方式3,OUT1输出的1秒方波接CLK2作为输入脉冲.设定计数初值N2 分别为奇数和偶数,观察实验的结果.
+附加思考:要让定时时间最长,则初值N应送多少呢?
+代码：
+data segment
+i82530 equ 280h
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+
+mov dx,283h
+mov al,00100111b
+out dx,al
+mov dx,280h
+mov al,10h
+out dx,al
+
+mov dx,283h
+mov al,01100111b
+out dx,al
+mov dx,281h
+mov al,10h
+out dx,al
+
+mov dx,283h
+mov al,10010111b
+out dx,al
+mov dx,282h
+mov al,4h （奇数：mov al,5h）
+out dx,al
+
+mov ah,4ch
+int 21h
+
+code ends
+end start
+
+8255可编程并行接口
+1.设定端口工作在方式0,A口低四位接四个开关,B口低四位接四个LED灯.PC7接开关,开关开始时调为低电平,当开关调为高电平时,将A口内容送B口显示.当电平变换次数超过10次后退出,返回DOS界面 。
+附加思考:若PC7改为PC0该如何修改代码实现。
+代码：
+data segment
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+
+mov cx,10
+
+mov al,10011000B
+mov dx,283h
+out dx,al
+l1:mov dx,282h
+in al,dx
+test al,80H
+jz l1
+
+mov dx,280h
+in al,dx
+
+mov dx,281h
+out dx,al
+
+l2:mov dx,282h
+in al,dx
+test al,80h
+jnz l2
+
+loop l1
+
+mov ah,4ch
+int 21h
+
+code ends
+end start
+2.设定端口工作在方式0,A口低四位接四个开关,B口高四位接四个LED灯.PC7接负按键脉冲,当脉冲为低电平时,将A口低位状态送B口高位显示.当脉冲个数超过10个后退出,返回DOS界面 。
+附加思考:若负脉冲改为正脉冲,则代码该进行些何修改
+代码：
+data segment
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+
+mov cx,10
+
+mov al,10011000B
+mov dx,283h
+out dx,al
+l1:mov dx,282h
+in al,dx
+test al,80H
+jz l1
+
+mov dx,280h
+in al,dx
+
+push cx   //左移4位,即A口低位状态送B口高位显示
+mov cl,4
+rol al,cl
+pop cx
+
+mov dx,281h
+out dx,al
+
+l2:mov dx,282h
+in al,dx
+test al,80h
+jnz l2
+
+loop l1
+
+mov ah,4ch
+int 21h
+
+code ends
+end start
+3.设定端口工作在方式0,A口接七段代码显示管,PC7接负按键脉冲,编写代码.当脉冲来临时，让七段代码显示管分别显示从0-9之间的十个数。超过10个后退出,返回DOS界面 。 
+PA0	PA1	PA2	PA3	PA4	PA5	PA6	PA7
+a	b	c	d	e	f	g	h
+附加思考:若负脉冲改为正脉冲,则代码该进行些何修改。
+代码:(0-9)
+data segment
+table db 3fh,06h,5bh,4fh,66h,6dh,7dh,07h,7fh,6fh
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+mov al,10001000b
+mov dx,283h
+out dx,al
+
+mov cx,2
+
+l6:push cx
+mov cx,10
+l5:lea bx,table
+l2:mov dx,282h
+in al,dx
+test al,80h
+jz l2
+
+l4:mov al,[bx]
+mov dx,280h
+out dx,al
+
+l3:mov dx,282h
+in al,dx
+test al,80h
+jnz l3
+
+inc bx
+loop l2
+pop cx
+loop l6
+
+mov ah,4ch
+int 21h
+
+code ends
+end start
+一、实验目的:掌握数码管显示数字的原理
+二、实验内容
+  动态显示：七段数码管段码连接不变，接PB口。位码驱动输入端S1，S0接8255 C口的PC7，PC6。编程在两个数码管上显示“00-99” 
+//PC7,PC6分别接S1，S0
+代码:
+data segment
+Table DB 3fh,06h,5bh,4fh,66h,6dh,7dh,07h,7fh,6fh
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+mov al,10000000B
+mov dx,293h
+out dx,al
+
+lea si,Table  
+L1:lea di,Table
+l3:mov dx,292h
+mov al,80h  //显示高位
+out dx,al
+
+mov al,[si]
+mov dx,291h
+out dx,al
+
+call delay1
+
+mov dx,292h
+mov al,40h  //显示低位
+out dx,al
+
+mov al,[di]
+mov dx,291h
+out dx,al
+
+call delay2
+
+inc di
+cmp di,10
+jnz l3
+
+inc si
+cmp si,10
+jnz l1
+
+call delay2
+
+mov ah,4ch
+int 21h
+
+delay1 proc
+push cx
+push bx
+mov bx,2fh
+l4:mov cx,0ffffh
+l0:nop
+      loop l0
+      dec bx
+      jnz l4
+      pop bx
+pop cx
+ret
+delay1 endp
+
+delay2 proc
+push cx
+push bx
+mov bx,1fh
+l2:mov cx,0ffffh
+l5:nop
+    loop l5
+    dec bx
+    jnz l2
+    pop bx
+pop cx
+ret
+delay2 endp
+
+code ends
+end start
+
+代码:显示”王”
+code segment
+array1   db 89h,89h,89h,0ffh,0ffh,89h,89h,89h //行 
+array2 db 01h,02h,04h,08h,10h,20h,40h,80h //列
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+
+mov cx,0fffh
+l1:lea si,array1
+lea di,array2
+push cx
+mov cx,8
+l9:mov al,[si]
+mov dx,280h //行 接 280h-287h
+out dx,al
+
+mov dx,290h //红列 接 290h-297h
+mov al,[di]
+out dx,al
+
+call delay
+
+inc di
+inc si
+ 
+loop l9
+      pop cx
+
+loop l1
+
+mov ah ,4ch
+int 21h
+
+delay proc
+push cx
+mov cx,1fh
+l2:nop
+ loop l2
+pop cx
+ret 
+delay endp
+
+code ends
+end start
+4.设定端口工作在方式0，利用8255驱动步进电机。
+附加思考:若要增加控制速度功能，应该如何实现。
+//芯片8253：cs接290h-297h  
+//产生方波
+//芯片8255：cs接280h-287h
+//PC7接OUT1
+代码：
+data segment
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+
+mov dx,293h
+mov al,00100111b
+out dx,al
+
+mov al,10h
+mov dx,290h
+out dx,al
+
+mov dx,293h
+mov al,01100111b
+out dx,al
+
+mov al,10h
+mov dx,291h
+out dx,al
+
+mov cx,20
+mov al,10001000b
+mov dx,283h
+out dx,al
+
+mov bl,33h
+l2:mov dx,282h
+in al,dx
+test al,80h
+jz l2
+
+rol bl,1
+mov al,bl
+mov dx,281h
+out dx,al
+
+l3:mov dx,282h
+in al,dx
+test al,80h
+jnz l3
+loop l2
+
+mov ah,4ch
+int 21h
+
+code ends
+end start
+
+数/模转换器的基本原理，掌握DAC0832芯片的使用方法
+实验内容：
+     编程产生以下波形(从Ua输出，用示波器观察)
+    （1）锯齿波      分16步长攀登
+（2）三角波      上升分16步长攀登下降也是16步
+    （3）梯形波      上升至少分16步顶上步长步限定下降也是至少16步
+代码：（锯齿波）
+data segment
+data ends
+code segment
+assume cs:code,ds:data
+start:
+    mov ax,data
+    mov ds,ax 
+ddd:
+    mov dx,290h
+    mov cx,16
+    mov al,0h
+eee:
+    out dx,al
+    call delay
+    add al,10h
+    loop eee 
+    jmp ddd
+     mov ah,4ch
+    int 21h
+    
+    delay proc
+    push cx
+    mov cx,0ffh
+lp: loop lp
+    pop cx
+    ret
+    delay endp
+    code ends
+end start 
+
+代码：（三角波）
+  data segment
+data ends
+code segment
+assume cs:code,ds:data
+start:
+    mov ax,data
+    mov ds,ax 
+ddd:
+    mov dx,290h
+    mov cx,16
+    mov al,0h
+eee:
+    out dx,al
+    call delay
+    add al,10h
+    loop eee 
+
+    mov cx,16
+fff:
+    out dx,al
+    call delay
+    sub al,10h
+    loop fff
+    
+    jmp ddd
+
+    mov ah,4ch
+    int 21h
+    
+    delay proc
+    push cx
+    mov cx,0ffh
+lp: loop lp
+    pop cx
+    ret
+    delay endp
+
+    code ends
+    end start  
+
+代码：（梯形波）
+data segment
+array db 00h,10h,20h,30h,40h,50h,60h,70h,80h,90h,0a0h,0b0h,0c0h,0d0h,0e0h,0f0h
+data ends
+code segment
+assume cs:code,ds:data
+start:
+    mov ax,data
+    mov ds,ax 
+ddd:
+    mov cx,16
+    lea si,array
+    mov dx,290h
+eee:
+    mov al,[si]
+    out dx,al
+    call delay
+    inc si
+    loop eee  
+    
+    mov cx,16
+ l1:call delay
+    loop l1
+ 
+    mov cx,16    
+    mov dx,290h
+fff: 
+    mov al,[si]    
+    out dx,al
+    call delay
+    dec si
+    loop fff
+
+    mov cx,16
+l2:call delay
+   loop l2
+
+    jmp ddd
+     mov ah,4ch
+    int 21h
+    
+    delay proc
+    push cx
+    mov cx,0ffh
+lp: loop lp
+    pop cx
+    ret
+    delay endp
+      
+    code ends
+    end start  
+ 
+ADC0809模/数转换器
+1、实验电路原理图如下图所示。通过实验台左下角电位器RW1输出0～5Ｖ直流电压送入ADC0809的通道0（In0），编写命令启动Ａ/Ｄ转换器，编写延时子程序，待转换结束读取转换结果，转换后数字在显示器上显示。（由于采集得到的信号若直接显示会出现乱码，故需要对采集的信号进行处理。实验要求将结果处理为2位的16进制显示。）
+代码：
+data segment
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+
+mov dx,290h
+mov al,00h
+out dx,al
+
+call delay
+in al,dx
+
+mov bl,al
+call dispBl
+mov ah,4ch
+int 21h
+
+delay proc
+push cx
+mov cx,100
+l1:nop
+loop l1
+pop cx
+ret
+delay endp
+
+dispBl proc
+push ax
+push bx
+push cx
+push dx
+mov ch,2
+l3:mov cl,4
+rol bl,cl
+mov dl,bl
+and dl,0fh
+add dl,30h
+cmp dl,39h
+jbe l2
+add dl,7h
+l2:mov ah,02h
+int 21h
+dec ch
+jnz l3
+mov dl,48h
+int 21h
+pop dx
+pop cx
+pop bx
+pop ax
+ret
+dispBl endp
+
+code ends
+end start
+通过芯片8255监测A/D是否转换完成
+data segment
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+
+mov dx,290h
+mov al,00h
+out dx,al
+
+mov dx,283
+mov al,10001000b
+out dx,al
+l22:mov dx,282h
+in al,dx
+cmp al,00h
+jz l22
+
+mov dx,290h
+in al,dx
+
+mov bl,al
+call dispBl
+mov ah,4ch
+int 21h
+
+dispBl proc
+push ax
+push bx
+push cx
+push dx
+mov ch,2
+l3:mov cl,4
+rol bl,cl
+mov dl,bl
+and dl,0fh
+add dl,30h
+cmp dl,39h
+jbe l2
+add dl,7h
+l2:mov ah,02h
+int 21h
+dec ch
+jnz l3
+mov dl,48h
+int 21h
+pop dx
+pop cx
+pop bx
+pop ax
+ret
+dispBl endp
+
+code ends
+end start
+
+2.设置长度为20的数组单元，对In1通道连续采集20次，将采集内容送数组单元内，采集完成，将20次采集的结果全部输出。观察输出结果，分析其原因。
+（可能看不到转换20次）
+代码：
+data segment
+Tab db 20 dup(?)
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+lea si,Tab
+mov cx,20
+
+l4:mov dx,290h
+mov al,00h
+out dx,al
+
+call delay
+
+in al,dx
+mov [si],al
+loop l4
+
+lea si,Tab
+mov cx,20
+l5:mov bl,[si]
+call dispBl
+mov ah,20h
+int 21h
+inc si
+loop l5
+mov ah,4ch
+int 21h
+
+delay proc
+push cx
+mov cx,100
+l1:nop
+loop l1
+pop cx
+ret
+delay endp
+
+dispBl proc
+push ax
+push bx
+push cx
+push dx
+mov ch,2
+l3:mov cl,4
+rol bl,cl
+mov dl,bl
+and dl,0fh
+add dl,30h
+cmp dl,39h
+jbe l2
+add dl,7h
+l2:mov ah,02h
+int 21h
+dec ch
+jnz l3
+mov dl,48h
+int 21h
+pop dx
+pop cx
+pop bx
+pop ax
+ret
+dispBl endp
+
+code ends
+end start
+
+3、读取键盘的输入数值并显示在液晶屏上，当输入数值为 0时，读取IN0的模拟量，并将其输出显示。当输入数值为1时，读取IN1的模拟量，并将其输出显示。
+代码：
+data segment
+data ends
+code segment
+assume cs:code,ds:data
+start:
+mov ax,data
+mov ds,ax
+
+mov cx,4
+
+l8:mov ah,01h
+int 21h
+push dx
+push ax
+mov dl,20h
+mov ah,02h
+int 21h
+pop ax
+pop dx
+cmp al,31h
+jnz l9
+
+mov dx,291h
+mov al,00h
+out dx,al
+
+call delay
+
+in al,dx
+
+
+mov bl,al
+
+
+call dispBl
+mov dl,0ah
+mov ah,02h
+int 21h
+mov dl,0dh
+mov ah,02h
+int 21h
+loop l8
+jmp l11
+
+l9:mov dx,290h
+mov al,00h
+out dx,al
+
+call delay
+
+in al,dx
+
+mov bl,al
+
+
+call dispBl
+mov dl,0ah
+mov ah,02h
+int 21h
+mov dl,0dh
+mov ah,02h
+int 21h
+loop l8
+
+
+l11:mov ah,4ch
+int 21h
+
+delay proc
+push cx
+mov cx,09
+l1:nop
+loop l1
+pop cx
+ret
+delay endp
+
+dispBl proc
+push ax
+push bx
+push cx
+push dx
+mov ch,2
+l3:mov cl,4
+rol bl,cl
+mov dl,bl
+and dl,0fh
+add dl,30h
+cmp dl,39h
+jbe l2
+add dl,7h
+l2:mov ah,02h
+int 21h
+dec ch
+jnz l3
+mov dl,48h
+int 21h
+pop dx
+pop cx
+pop bx
+pop ax
+ret
+dispBl endp
+
+code ends
+end start
+
